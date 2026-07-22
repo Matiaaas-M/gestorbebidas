@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GestorBebidas — Panel de Ventas</title>
+  <meta name="description"
+    content="Sistema de gestión de ventas, fiados y stock para negocio de bebidas. Registra ventas, controla fiados y visualiza ganancias en tiempo real." />
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0ea5e9" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GestorBebidas" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            },
+            surface: {
+              900: '#0f1117',
+              800: '#161b27',
+              700: '#1e2535',
+              600: '#252d3d',
+              500: '#2d3748',
+            }
+          },
+          boxShadow: {
+            'glow-blue': '0 0 24px rgba(14,165,233,0.25)',
+            'glow-green': '0 0 24px rgba(34,197,94,0.25)',
+            'glow-amber': '0 0 24px rgba(251,191,36,0.25)',
+            'glow-red': '0 0 24px rgba(239,68,68,0.25)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #161b27;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2d3748;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #0ea5e9;
+    }
+
+    .hero-gradient {
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #8b5cf6 100%);
+    }
+
+    .glass {
+      background: rgba(30, 37, 53, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .stat-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .tab-btn {
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      color: #fff;
+      box-shadow: 0 0 20px rgba(14, 165, 233, 0.4);
+    }
+
+    .form-input {
+      background: #161b27;
+      border: 1px solid #2d3748;
+      color: #e2e8f0;
+      border-radius: 0.5rem;
+      padding: 0.6rem 0.9rem;
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-size: 0.95rem;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+    }
+
+    .form-input option {
+      background: #161b27;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      color: #fff;
+      border: none;
+      border-radius: 0.6rem;
+      padding: 0.65rem 1.4rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(14, 165, 233, 0.35);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      opacity: 0.88;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-success:hover:not(:disabled) {
+      opacity: 0.85;
+      transform: translateY(-1px);
+    }
+
+    .btn-success:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #toast-container {
+      position: fixed;
+      top: 1.2rem;
+      right: 1.2rem;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .toast {
+      padding: 0.75rem 1.2rem;
+      border-radius: 0.6rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      animation: slideIn 0.3s ease, fadeOut 0.4s ease 3.2s forwards;
+      max-width: 320px;
+      word-break: break-word;
+      backdrop-filter: blur(8px);
+    }
+
+    .toast-success {
+      background: rgba(22, 163, 74, 0.85);
+      color: #fff;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    .toast-error {
+      background: rgba(185, 28, 28, 0.85);
+      color: #fff;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .toast-info {
+      background: rgba(14, 165, 233, 0.85);
+      color: #fff;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(40px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-pending {
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .badge-paid {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .badge-cash {
+      background: rgba(14, 165, 233, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(14, 165, 233, 0.3);
+    }
+
+    .badge-debit {
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, #1e2535 25%, #252d3d 50%, #1e2535 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 0.5rem;
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: 200% 0;
+      }
+
+      100% {
+        background-position: -200% 0;
+      }
+    }
+
+    .progress-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #0ea5e9, #6366f1);
+      transition: width 0.6s ease;
+    }
+
+    .stock-ok {
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+    }
+
+    .stock-low {
+      background: linear-gradient(90deg, #f59e0b, #d97706);
+    }
+
+    .stock-empty {
+      background: linear-gradient(90deg, #ef4444, #dc2626);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: pulse-anim 2s infinite;
+    }
+
+    @keyframes pulse-anim {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.5;
+        transform: scale(0.75);
+      }
+    }
+
+    .section {
+      display: none;
+      animation: sectionIn 0.3s ease;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    @keyframes sectionIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fiado-row {
+      transition: background 0.15s;
+    }
+
+    .fiado-row:hover {
+      background: rgba(255, 255, 255, 0.03) !important;
+    }
+
+    .icon-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .stock-row {
+      transition: background 0.15s, transform 0.15s;
+    }
+
+    .stock-row:hover {
+      background: rgba(255, 255, 255, 0.03) !important;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: #fff;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      opacity: 0.85;
+      transform: translateY(-1px);
+    }
+
+    .btn-danger:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-warning:hover:not(:disabled) {
+      opacity: 0.85;
+      transform: translateY(-1px);
+    }
+
+    .btn-warning:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      animation: fadeInModal 0.2s ease;
+    }
+
+    @keyframes fadeInModal {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .modal-box {
+      background: #1e2535;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1.25rem;
+      padding: 1.75rem;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+      animation: slideUpModal 0.25s ease;
+    }
+
+    @keyframes slideUpModal {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body class="antialiased">
+
+  <!-- Toast container -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- PWA Install Banner -->
+  <div id="install-banner"
+    class="hidden fixed bottom-0 left-0 right-0 z-50 items-center justify-between gap-3 px-4 py-3" style="background: linear-gradient(135deg, rgba(14,165,233,0.97), rgba(99,102,241,0.97));
+              backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.15);
+              box-shadow: 0 -8px 32px rgba(14,165,233,0.3);">
+    <div class="flex items-center gap-3">
+      <img src="./icon-192.png" alt="GestorBebidas" class="w-10 h-10 rounded-xl shadow-lg flex-shrink-0" />
+      <div>
+        <p class="text-sm font-bold text-white leading-tight">Instalar GestorBebidas</p>
+        <p class="text-xs text-white/80">Agregala a tu pantalla de inicio</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <button id="install-dismiss"
+        class="text-white/70 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-white/20 hover:border-white/40 transition-all font-medium">
+        Ahora no
+      </button>
+      <button id="install-btn"
+        class="bg-white text-brand-600 text-xs px-4 py-1.5 rounded-lg font-bold hover:bg-white/90 transition-all shadow-lg"
+        style="color:#0284c7">
+        ⬇ Instalar
+      </button>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-50 glass border-b border-white/5">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="hero-gradient rounded-xl p-2 shadow-glow-blue">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-white leading-tight">GestorBebidas</h1>
+          <p class="text-xs text-slate-400 leading-tight">Panel de Ventas</p>
+        </div>
+      </div>
+      <div class="text-right hidden sm:block">
+        <p id="live-clock" class="text-sm font-semibold text-brand-400"></p>
+        <p id="live-date" class="text-xs text-slate-400"></p>
+      </div>
+      <div class="flex items-center gap-2 ml-3">
+        <div id="conn-dot" class="pulse-dot bg-amber-400"></div>
+        <span id="conn-label" class="text-xs text-slate-400 hidden sm:inline">Conectando…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAV TABS -->
+  <nav class="glass border-b border-white/5 sticky top-[57px] z-40">
+    <div class="max-w-5xl mx-auto px-4 flex gap-2 py-2 overflow-x-auto">
+      <button id="tab-dashboard"
+        class="tab-btn active flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-white"
+        onclick="switchTab('dashboard')">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+        Dashboard
+      </button>
+      <button id="tab-ventas"
+        class="tab-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-400 whitespace-nowrap"
+        onclick="switchTab('ventas')">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        Nueva Venta
+      </button>
+      <button id="tab-fiados"
+        class="tab-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-400 whitespace-nowrap"
+        onclick="switchTab('fiados')">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Fiados
+        <span id="fiados-badge"
+          class="hidden bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"></span>
+      </button>
+      <button id="tab-stock"
+        class="tab-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-400 whitespace-nowrap"
+        onclick="switchTab('stock')">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+        Stock
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- SECTION: DASHBOARD -->
+    <section id="section-dashboard" class="section active space-y-6">
+
+      <!-- Stat Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <div class="stat-card glass rounded-2xl p-5 shadow-glow-blue">
+          <div class="flex items-start justify-between mb-4">
+            <div class="icon-circle bg-brand-500/20">💰</div>
+            <span class="badge badge-cash">HOY</span>
+          </div>
+          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Ganancia del Día</p>
+          <p id="stat-ganancia-dia" class="text-2xl font-bold text-white">
+            <span class="skeleton inline-block w-24 h-7">&nbsp;</span>
+          </p>
+          <p id="stat-ventas-dia" class="text-xs text-slate-400 mt-1">&nbsp;</p>
+        </div>
+
+        <div class="stat-card glass rounded-2xl p-5">
+          <div class="flex items-start justify-between mb-4">
+            <div class="icon-circle bg-indigo-500/20">📈</div>
+            <span class="badge"
+              style="background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3)">MES</span>
+          </div>
+          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Ganancia del Mes</p>
+          <p id="stat-ganancia-mes" class="text-2xl font-bold text-white">
+            <span class="skeleton inline-block w-24 h-7">&nbsp;</span>
+          </p>
+          <p id="stat-ventas-mes" class="text-xs text-slate-400 mt-1">&nbsp;</p>
+        </div>
+
+        <div class="stat-card glass rounded-2xl p-5 shadow-glow-amber">
+          <div class="flex items-start justify-between mb-4">
+            <div class="icon-circle bg-amber-500/20">🧾</div>
+            <span class="badge badge-pending">PENDIENTE</span>
+          </div>
+          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Total Fiados</p>
+          <p id="stat-fiados-total" class="text-2xl font-bold text-amber-400">
+            <span class="skeleton inline-block w-24 h-7">&nbsp;</span>
+          </p>
+          <p id="stat-fiados-count" class="text-xs text-slate-400 mt-1">&nbsp;</p>
+        </div>
+
+        <div class="stat-card glass rounded-2xl p-5 shadow-glow-green">
+          <div class="flex items-start justify-between mb-4">
+            <div class="icon-circle bg-green-500/20">🏦</div>
+            <span class="badge badge-paid">COBRADO</span>
+          </div>
+          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Ingresos Netos Mes</p>
+          <p id="stat-ingresos" class="text-2xl font-bold text-green-400">
+            <span class="skeleton inline-block w-24 h-7">&nbsp;</span>
+          </p>
+          <p class="text-xs text-slate-400 mt-1">Solo pagados</p>
+        </div>
+      </div>
+
+      <!-- Stock & Reposición -->
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-5">
+          <div class="flex items-center gap-3">
+            <div class="icon-circle bg-purple-500/20">📦</div>
+            <div>
+              <h2 class="text-base font-bold text-white">Stock & Calculadora de Reposición</h2>
+              <p class="text-xs text-slate-400">Costo unitario: $1.881 · Precio venta: $2.800</p>
+            </div>
+          </div>
+          <button onclick="loadDashboard()"
+            class="text-xs text-brand-400 hover:text-brand-500 font-medium transition-colors flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Actualizar
+          </button>
+        </div>
+
+        <!-- Calculadora -->
+        <div class="bg-surface-800 rounded-xl p-4 mb-5 border border-white/5">
+          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-3">💡 Calculadora de Compra</p>
+          <div class="flex gap-3 items-end flex-wrap">
+            <div class="flex-1 min-w-[160px]">
+              <label class="text-xs text-slate-400 mb-1 block">Dinero disponible ($)</label>
+              <input id="calc-dinero" type="number" min="0" placeholder="Ej: 20000" class="form-input"
+                oninput="calcularReposicion()" />
+            </div>
+            <div class="flex-1 min-w-[160px]">
+              <label class="text-xs text-slate-400 mb-1 block">Resultado</label>
+              <div id="calc-result" class="form-input text-brand-400 font-semibold cursor-default"
+                style="background:#1e2535">
+                Ingresa monto…
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stock list -->
+        <div id="stock-list" class="space-y-3">
+          <div class="skeleton h-14 rounded-xl">&nbsp;</div>
+          <div class="skeleton h-14 rounded-xl">&nbsp;</div>
+          <div class="skeleton h-14 rounded-xl">&nbsp;</div>
+          <div class="skeleton h-14 rounded-xl">&nbsp;</div>
+        </div>
+      </div>
+
+      <!-- Historial ventas hoy -->
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="icon-circle bg-blue-500/20">🕐</div>
+          <h2 class="text-base font-bold text-white">Últimas Ventas de Hoy</h2>
+        </div>
+        <div id="ventas-hoy-list" class="space-y-2">
+          <div class="skeleton h-12 rounded-xl">&nbsp;</div>
+          <div class="skeleton h-12 rounded-xl">&nbsp;</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: NUEVA VENTA -->
+    <section id="section-ventas" class="section space-y-5">
+
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="icon-circle bg-brand-500/20">🛒</div>
+          <div>
+            <h2 class="text-base font-bold text-white">Registrar Nueva Venta</h2>
+            <p class="text-xs text-slate-400">Los campos se calcularán automáticamente</p>
+          </div>
+        </div>
+
+        <form id="venta-form" onsubmit="registrarVenta(event)" class="space-y-5">
+
+          <div>
+            <label for="venta-producto" class="block text-sm font-medium text-slate-300 mb-1.5">
+              Producto <span class="text-red-400">*</span>
+            </label>
+            <select id="venta-producto" class="form-input" onchange="actualizarPreview()" required>
+              <option value="">— Seleccionar producto —</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="venta-cantidad" class="block text-sm font-medium text-slate-300 mb-1.5">
+              Cantidad <span class="text-red-400">*</span>
+            </label>
+            <input id="venta-cantidad" type="number" min="1" max="100" value="1" class="form-input"
+              oninput="actualizarPreview()" required />
+          </div>
+
+          <!-- Método de pago -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2">
+              Método de pago <span class="text-red-400">*</span>
+            </label>
+            <div class="grid grid-cols-3 gap-2">
+              <label id="lbl-efectivo"
+                class="pay-label cursor-pointer rounded-xl border border-brand-500 bg-brand-500/10 p-3 text-center transition-all">
+                <input type="radio" name="metodo_pago" value="efectivo" class="hidden" checked
+                  onchange="onMetodoPagoChange()" />
+                <span class="text-lg block mb-0.5">💵</span>
+                <span class="text-xs font-semibold text-brand-400">Efectivo</span>
+              </label>
+              <label id="lbl-debito"
+                class="pay-label cursor-pointer rounded-xl border border-white/10 p-3 text-center transition-all hover:border-indigo-400">
+                <input type="radio" name="metodo_pago" value="debito" class="hidden" onchange="onMetodoPagoChange()" />
+                <span class="text-lg block mb-0.5">💳</span>
+                <span class="text-xs font-semibold text-slate-400">Débito</span>
+              </label>
+              <label id="lbl-fiado"
+                class="pay-label cursor-pointer rounded-xl border border-white/10 p-3 text-center transition-all hover:border-amber-400">
+                <input type="radio" name="metodo_pago" value="fiado" class="hidden" onchange="onMetodoPagoChange()" />
+                <span class="text-lg block mb-0.5">🧾</span>
+                <span class="text-xs font-semibold text-slate-400">Fiado</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Cliente fiado (dinámico) -->
+          <div id="fiado-campo" class="hidden">
+            <label for="venta-cliente" class="block text-sm font-medium text-slate-300 mb-1.5">
+              Nombre del cliente <span class="text-red-400">*</span>
+            </label>
+            <input id="venta-cliente" type="text" placeholder="Ej: Juan González" class="form-input" />
+            <p class="text-xs text-amber-400 mt-1.5 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01M12 3a9 9 0 110 18A9 9 0 0112 3z" />
+              </svg>
+              Esta venta quedará como PENDIENTE de cobro.
+            </p>
+          </div>
+
+          <!-- Preview -->
+          <div id="venta-preview" class="hidden bg-surface-800 rounded-xl p-4 border border-white/5">
+            <p class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-3">📋 Resumen de la venta</p>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div class="text-center">
+                <p class="text-xs text-slate-500 mb-0.5">Precio unitario</p>
+                <p id="prev-precio" class="text-sm font-bold text-white">—</p>
+              </div>
+              <div class="text-center">
+                <p class="text-xs text-slate-500 mb-0.5">Total a cobrar</p>
+                <p id="prev-total" class="text-sm font-bold text-brand-400">—</p>
+              </div>
+              <div class="text-center col-span-2 sm:col-span-1">
+                <p class="text-xs text-slate-500 mb-0.5">Ganancia</p>
+                <p id="prev-ganancia" class="text-sm font-bold text-green-400">—</p>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-registrar"
+            class="btn-primary w-full flex items-center justify-center gap-2 py-3 text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Registrar Venta
+          </button>
+        </form>
+      </div>
+
+      <!-- Historial rápido -->
+      <div class="glass rounded-2xl p-5">
+        <h2 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <span>📋</span> Historial de Hoy
+        </h2>
+        <div id="ventas-hoy-list-2" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- SECTION: FIADOS -->
+    <section id="section-fiados" class="section space-y-5">
+
+      <!-- Stats fiados -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="glass rounded-2xl p-4">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Pendientes</p>
+          <p id="f-count-pendiente" class="text-2xl font-bold text-amber-400">—</p>
+        </div>
+        <div class="glass rounded-2xl p-4">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Total adeudado</p>
+          <p id="f-total-adeudado" class="text-2xl font-bold text-red-400">—</p>
+        </div>
+        <div class="glass rounded-2xl p-4">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Ganancia en riesgo</p>
+          <p id="f-ganancia-riesgo" class="text-2xl font-bold text-slate-300">—</p>
+        </div>
+      </div>
+
+      <!-- Fiados pendientes -->
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>🧾</span> Fiados Pendientes
+          </h2>
+          <div class="flex gap-2">
+            <input id="fiado-search" type="text" placeholder="Buscar cliente…"
+              class="form-input text-sm py-1.5 w-40 sm:w-52" oninput="renderFiados()" />
+            <button onclick="loadFiados()" class="btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Actualizar
+            </button>
+          </div>
+        </div>
+
+        <div id="fiados-list" class="space-y-3">
+          <div class="skeleton h-16 rounded-xl">&nbsp;</div>
+          <div class="skeleton h-16 rounded-xl">&nbsp;</div>
+          <div class="skeleton h-16 rounded-xl">&nbsp;</div>
+        </div>
+      </div>
+
+      <!-- Fiados pagados -->
+      <div class="glass rounded-2xl p-5">
+        <h2 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <span>✅</span> Fiados Cobrados (últimos 30 días)
+        </h2>
+        <div id="fiados-pagados-list" class="space-y-2 max-h-72 overflow-y-auto pr-1"></div>
+      </div>
+    </section>
+
+    <!-- SECTION: STOCK -->
+    <section id="section-stock" class="section space-y-5">
+
+      <!-- Header + agregar producto -->
+      <div class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div class="flex items-center gap-3">
+            <div class="icon-circle bg-purple-500/20">📦</div>
+            <div>
+              <h2 class="text-base font-bold text-white">Gestión de Stock</h2>
+              <p class="text-xs text-slate-400">Administrá tus productos e inventario</p>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="loadStockSection()" class="btn-primary text-xs px-3 py-1.5 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Actualizar
+            </button>
+            <button onclick="openModalNuevoProducto()" class="btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
+              style="background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 4px 15px rgba(34,197,94,0.35);">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Nuevo Producto
+            </button>
+          </div>
+        </div>
+
+        <!-- Resumen stock -->
+        <div class="grid grid-cols-3 gap-3 mb-5">
+          <div class="bg-surface-800 rounded-xl p-3 text-center border border-white/5">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Productos</p>
+            <p id="st-total-productos" class="text-xl font-bold text-white">—</p>
+          </div>
+          <div class="bg-surface-800 rounded-xl p-3 text-center border border-white/5">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Total unidades</p>
+            <p id="st-total-unidades" class="text-xl font-bold text-brand-400">—</p>
+          </div>
+          <div class="bg-surface-800 rounded-xl p-3 text-center border border-white/5">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Valor en stock</p>
+            <p id="st-valor-stock" class="text-xl font-bold text-green-400">—</p>
+          </div>
+        </div>
+
+        <!-- Lista de productos -->
+        <div id="stock-section-list" class="space-y-3">
+          <div class="skeleton h-16 rounded-xl">&nbsp;</div>
+          <div class="skeleton h-16 rounded-xl">&nbsp;</div>
+          <div class="skeleton h-16 rounded-xl">&nbsp;</div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: NUEVO / EDITAR PRODUCTO -->
+  <div id="modal-producto" class="modal-overlay hidden" onclick="closeModalProducto(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-5">
+        <h3 id="modal-titulo" class="text-base font-bold text-white">Nuevo Producto</h3>
+        <button onclick="closeModalProducto()"
+          class="text-slate-400 hover:text-white transition-colors text-xl leading-none">&times;</button>
+      </div>
+      <form id="modal-form" onsubmit="guardarProducto(event)" class="space-y-4">
+        <input type="hidden" id="modal-prod-id" value="" />
+        <div>
+          <label for="modal-nombre" class="block text-sm font-medium text-slate-300 mb-1.5">Nombre del producto <span
+              class="text-red-400">*</span></label>
+          <input id="modal-nombre" type="text" placeholder="Ej: Coca-Cola 2L" class="form-input" required />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="modal-costo" class="block text-sm font-medium text-slate-300 mb-1.5">Costo unitario ($) <span
+                class="text-red-400">*</span></label>
+            <input id="modal-costo" type="number" min="0" step="1" placeholder="1881" class="form-input" required
+              oninput="calcModalGanancia()" />
+          </div>
+          <div>
+            <label for="modal-precio" class="block text-sm font-medium text-slate-300 mb-1.5">Precio venta ($) <span
+                class="text-red-400">*</span></label>
+            <input id="modal-precio" type="number" min="0" step="1" placeholder="2800" class="form-input" required
+              oninput="calcModalGanancia()" />
+          </div>
+        </div>
+        <div>
+          <label for="modal-stock" class="block text-sm font-medium text-slate-300 mb-1.5">Stock inicial (unidades)
+            <span class="text-red-400">*</span></label>
+          <input id="modal-stock" type="number" min="0" step="1" placeholder="0" class="form-input" required />
+        </div>
+        <!-- Preview ganancia -->
+        <div id="modal-ganancia-preview" class="hidden bg-surface-800 rounded-xl p-3 border border-white/5">
+          <div class="flex justify-between text-xs">
+            <span class="text-slate-400">Ganancia por unidad:</span>
+            <span id="modal-ganancia-val" class="font-bold text-green-400">—</span>
+          </div>
+          <div class="flex justify-between text-xs mt-1">
+            <span class="text-slate-400">Margen:</span>
+            <span id="modal-margen-val" class="font-bold text-brand-400">—</span>
+          </div>
+        </div>
+        <div class="flex gap-3 pt-1">
+          <button type="button" onclick="closeModalProducto()"
+            class="flex-1 py-2.5 rounded-lg border border-white/10 text-slate-400 text-sm font-medium hover:border-white/20 hover:text-white transition-all">Cancelar</button>
+          <button type="submit" id="modal-submit-btn" class="btn-primary flex-1 py-2.5 text-sm">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: REPONER STOCK -->
+  <div id="modal-reponer" class="modal-overlay hidden" onclick="closeModalReponer(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-base font-bold text-white">Reponer Stock</h3>
+        <button onclick="closeModalReponer()"
+          class="text-slate-400 hover:text-white transition-colors text-xl leading-none">&times;</button>
+      </div>
+      <div class="mb-4">
+        <p class="text-sm text-slate-300 mb-1">Producto: <span id="reponer-nombre"
+            class="font-semibold text-white"></span></p>
+        <p class="text-sm text-slate-400">Stock actual: <span id="reponer-stock-actual"
+            class="font-semibold text-brand-400"></span> unidades</p>
+      </div>
+      <form onsubmit="confirmarReposicion(event)" class="space-y-4">
+        <input type="hidden" id="reponer-prod-id" />
+        <input type="hidden" id="reponer-stock-base" />
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1.5">Unidades a agregar <span
+              class="text-red-400">*</span></label>
+          <input id="reponer-cantidad" type="number" min="1" step="1" placeholder="Ej: 24" class="form-input" required
+            oninput="calcReponerPreview()" />
+        </div>
+        <div id="reponer-preview" class="hidden bg-surface-800 rounded-xl p-3 border border-white/5">
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-400">Nuevo stock total:</span>
+            <span id="reponer-nuevo-stock" class="font-bold text-green-400"></span>
+          </div>
+          <div class="flex justify-between text-sm mt-1">
+            <span class="text-slate-400">Costo de reposición:</span>
+            <span id="reponer-costo-total" class="font-bold text-amber-400"></span>
+          </div>
+        </div>
+        <div class="flex gap-3 pt-1">
+          <button type="button" onclick="closeModalReponer()"
+            class="flex-1 py-2.5 rounded-lg border border-white/10 text-slate-400 text-sm font-medium hover:border-white/20 hover:text-white transition-all">Cancelar</button>
+          <button type="submit" class="btn-primary flex-1 py-2.5 text-sm"
+            style="background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 4px 15px rgba(34,197,94,0.35);">✅
+            Confirmar Reposición</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="mt-8 pb-6 text-center text-xs text-slate-600">
+    GestorBebidas · Sincronizado con Supabase · <span id="footer-time"></span>
+  </footer>
+
+  <!-- ============================================================
+       JAVASCRIPT
+  ============================================================= -->
+  <script>
+    /* ─── Supabase init ─── */
+    const SUPABASE_URL = 'https://wvhthptdnhqpvqsckqen.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_A4YnuevWcvjNc5c_u1GhFw_J8bTDzEY';
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    /* ─── Business constants ─── */
+    const COSTO_UNIT = 1881;
+    const PRECIO_UNIT = 2800;
+    const STOCK_BAJO = 5;
+
+    /* ─── State ─── */
+    let productos = [];
+    let fiadosPendientes = [];
+    let fiadosPagados = [];
+    let ventasHoy = [];
+
+    /* ─── Clock ─── */
+    function updateClock() {
+      const n = new Date();
+      document.getElementById('live-clock').textContent =
+        n.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('live-date').textContent =
+        n.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+      document.getElementById('footer-time').textContent =
+        'Última actualización: ' + n.toLocaleTimeString('es-AR');
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    /* ─── Toast ─── */
+    function toast(msg, type = 'info') {
+      const el = document.createElement('div');
+      el.className = 'toast toast-' + type;
+      el.textContent = msg;
+      document.getElementById('toast-container').appendChild(el);
+      setTimeout(() => el.remove(), 3700);
+    }
+
+    /* ─── Formatters ─── */
+    function fmtMoney(n) {
+      return '$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 0 });
+    }
+    function fmtDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+        + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    }
+    function todayRange() {
+      const n = new Date();
+      const s = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+      const e = new Date(s); e.setDate(e.getDate() + 1);
+      return { start: s.toISOString(), end: e.toISOString() };
+    }
+    function monthRange() {
+      const n = new Date();
+      const s = new Date(n.getFullYear(), n.getMonth(), 1);
+      const e = new Date(n.getFullYear(), n.getMonth() + 1, 1);
+      return { start: s.toISOString(), end: e.toISOString() };
+    }
+
+    /* ─── Tab navigation ─── */
+    function switchTab(tab) {
+      ['dashboard', 'ventas', 'fiados', 'stock'].forEach(t => {
+        document.getElementById('section-' + t).classList.toggle('active', t === tab);
+        const btn = document.getElementById('tab-' + t);
+        btn.classList.toggle('active', t === tab);
+        btn.classList.toggle('text-slate-400', t !== tab);
+        btn.classList.toggle('text-white', t === tab);
+      });
+      if (tab === 'fiados') loadFiados();
+      if (tab === 'dashboard') loadDashboard();
+      if (tab === 'ventas') renderVentasHoySeccion();
+      if (tab === 'stock') loadStockSection();
+    }
+
+    /* ─── Connection check ─── */
+    async function checkConnection() {
+      const { error } = await db.from('productos').select('id').limit(1);
+      const dot = document.getElementById('conn-dot');
+      const label = document.getElementById('conn-label');
+      if (error) {
+        dot.className = 'pulse-dot bg-red-400';
+        label.textContent = 'Sin conexión';
+        label.className = 'text-xs text-red-400 hidden sm:inline';
+      } else {
+        dot.className = 'pulse-dot bg-green-400';
+        label.textContent = 'Conectado';
+        label.className = 'text-xs text-green-400 hidden sm:inline';
+      }
+    }
+
+    /* ─── Load products ─── */
+    async function loadProductos() {
+      const { data, error } = await db.from('productos').select('*').order('nombre');
+      if (error) { toast('Error cargando productos: ' + error.message, 'error'); return; }
+      productos = data || [];
+      const sel = document.getElementById('venta-producto');
+      sel.innerHTML = '<option value="">— Seleccionar producto —</option>';
+      productos.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.dataset.precio = p.precio_venta;
+        opt.dataset.costo = p.costo;
+        opt.dataset.stock = p.stock;
+        opt.textContent = p.nombre + ' — Stock: ' + (p.stock ?? 'N/A') + ' · ' + fmtMoney(p.precio_venta);
+        sel.appendChild(opt);
+      });
+    }
+
+    /* ─── Dashboard ─── */
+    async function loadDashboard() {
+      await Promise.all([
+        loadStatsHoy(),
+        loadStatsMes(),
+        loadFiadosStats(),
+        loadStockUI(),
+        loadVentasHoy(),
+      ]);
+    }
+
+    async function loadStatsHoy() {
+      const { start, end } = todayRange();
+      const { data, error } = await db.from('ventas')
+        .select('ganancia, cantidad, metodo_pago, pagado')
+        .gte('created_at', start).lt('created_at', end);
+      if (error) return;
+      const ganancia = (data || []).reduce((s, v) => s + (v.ganancia || 0), 0);
+      const totalV = (data || []).reduce((s, v) => s + (v.cantidad || 0), 0);
+      document.getElementById('stat-ganancia-dia').textContent = fmtMoney(ganancia);
+      document.getElementById('stat-ventas-dia').textContent = data.length + ' ventas · ' + totalV + ' unidades';
+    }
+
+    async function loadStatsMes() {
+      const { start, end } = monthRange();
+      const { data, error } = await db.from('ventas')
+        .select('ganancia, cantidad, total, pagado')
+        .gte('created_at', start).lt('created_at', end);
+      if (error) return;
+      const ganancia = (data || []).reduce((s, v) => s + (v.ganancia || 0), 0);
+      const ingresos = (data || []).filter(v => v.pagado).reduce((s, v) => s + (v.total || 0), 0);
+      const totalV = (data || []).reduce((s, v) => s + (v.cantidad || 0), 0);
+      document.getElementById('stat-ganancia-mes').textContent = fmtMoney(ganancia);
+      document.getElementById('stat-ventas-mes').textContent = data.length + ' ventas · ' + totalV + ' unidades';
+      document.getElementById('stat-ingresos').textContent = fmtMoney(ingresos);
+    }
+
+    async function loadFiadosStats() {
+      const { data, error } = await db.from('ventas')
+        .select('total, ganancia')
+        .eq('metodo_pago', 'fiado')
+        .eq('pagado', false);
+      if (error) return;
+      const total = (data || []).reduce((s, v) => s + (v.total || 0), 0);
+      const ganancia = (data || []).reduce((s, v) => s + (v.ganancia || 0), 0);
+      document.getElementById('stat-fiados-total').textContent = fmtMoney(total);
+      document.getElementById('stat-fiados-count').textContent =
+        data.length + ' fiado' + (data.length !== 1 ? 's' : '') + ' pendiente' + (data.length !== 1 ? 's' : '');
+      // Badge
+      const badge = document.getElementById('fiados-badge');
+      if (data.length > 0) { badge.textContent = data.length; badge.classList.remove('hidden'); }
+      else badge.classList.add('hidden');
+      // Fiados section stats
+      document.getElementById('f-count-pendiente').textContent = data.length;
+      document.getElementById('f-total-adeudado').textContent = fmtMoney(total);
+      document.getElementById('f-ganancia-riesgo').textContent = fmtMoney(ganancia);
+    }
+
+    async function loadStockUI() {
+      const { data, error } = await db.from('productos').select('*').order('nombre');
+      if (error) return;
+      productos = data || [];
+      const list = document.getElementById('stock-list');
+      if (!data || !data.length) {
+        list.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Sin productos</p>';
+        return;
+      }
+      list.innerHTML = data.map(p => {
+        const stock = p.stock ?? 0;
+        const pct = Math.min(100, (stock / 20) * 100);
+        const cls = stock === 0 ? 'stock-empty' : stock <= STOCK_BAJO ? 'stock-low' : 'stock-ok';
+        const alert = stock === 0
+          ? '<span class="text-xs px-2 py-0.5 rounded-full font-medium bg-red-500/20 text-red-400">🔴 Sin stock</span>'
+          : stock <= STOCK_BAJO
+            ? '<span class="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-400">⚠️ Stock bajo</span>'
+            : '<span class="text-xs px-2 py-0.5 rounded-full font-medium bg-green-500/20 text-green-400">✅ OK</span>';
+        return `
+          <div class="bg-surface-800 rounded-xl p-4 border border-white/5 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div class="flex-1">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-sm font-semibold text-white">${p.nombre}</span>
+                ${alert}
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="flex-1 bg-surface-600 rounded-full h-1.5 overflow-hidden">
+                  <div class="progress-bar ${cls}" style="width:${pct}%"></div>
+                </div>
+                <span class="text-xs text-slate-400 shrink-0">${stock} und.</span>
+              </div>
+            </div>
+            <div class="flex gap-4 text-center sm:flex-col sm:gap-0 sm:text-right">
+              <div><p class="text-[10px] text-slate-500">Costo</p><p class="text-xs font-semibold text-slate-300">${fmtMoney(p.costo ?? COSTO_UNIT)}</p></div>
+              <div><p class="text-[10px] text-slate-500">Precio</p><p class="text-xs font-semibold text-brand-400">${fmtMoney(p.precio_venta ?? PRECIO_UNIT)}</p></div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function loadVentasHoy() {
+      const { start, end } = todayRange();
+      const { data, error } = await db.from('ventas')
+        .select('*, productos(nombre)')
+        .gte('created_at', start).lt('created_at', end)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) return;
+      ventasHoy = data || [];
+      renderVentasHoyList('ventas-hoy-list');
+    }
+
+    function renderVentasHoyList(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!ventasHoy.length) {
+        el.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Sin ventas hoy aún</p>';
+        return;
+      }
+      const badgeCls = { efectivo: 'badge-cash', debito: 'badge-debit', fiado: 'badge-pending' };
+      const metLabel = { efectivo: '💵 Efectivo', debito: '💳 Débito', fiado: '🧾 Fiado' };
+      el.innerHTML = ventasHoy.map(v => `
+        <div class="flex items-center justify-between bg-surface-800 rounded-xl px-4 py-3 gap-3">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-white truncate">${v.productos?.nombre ?? 'Producto'} ×${v.cantidad}</p>
+            <p class="text-xs text-slate-400">${fmtDate(v.created_at)}${v.cliente_fiado ? ' · ' + v.cliente_fiado : ''}</p>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-sm font-bold text-white">${fmtMoney(v.total)}</p>
+            <span class="badge ${badgeCls[v.metodo_pago] || ''}">${metLabel[v.metodo_pago] || v.metodo_pago}</span>
+          </div>
+        </div>`).join('');
+    }
+
+    function renderVentasHoySeccion() { renderVentasHoyList('ventas-hoy-list-2'); }
+
+    /* ─── Calculadora reposición ─── */
+    function calcularReposicion() {
+      const dinero = parseFloat(document.getElementById('calc-dinero').value) || 0;
+      const el = document.getElementById('calc-result');
+      if (!dinero) { el.textContent = 'Ingresa monto…'; return; }
+      const unidades = Math.floor(dinero / COSTO_UNIT);
+      const resto = dinero - unidades * COSTO_UNIT;
+      el.textContent = 'Podés comprar ' + unidades + ' unid. (sobran ' + fmtMoney(resto) + ')';
+    }
+
+    /* ─── Payment method UI ─── */
+    function onMetodoPagoChange() {
+      const val = (document.querySelector('input[name="metodo_pago"]:checked') || {}).value;
+      document.getElementById('fiado-campo').classList.toggle('hidden', val !== 'fiado');
+      document.getElementById('venta-cliente').required = (val === 'fiado');
+
+      const cfg = {
+        efectivo: { border: 'border-brand-500', bg: 'bg-brand-500/10', txt: 'text-brand-400' },
+        debito: { border: 'border-indigo-500', bg: 'bg-indigo-500/10', txt: 'text-indigo-400' },
+        fiado: { border: 'border-amber-500', bg: 'bg-amber-500/10', txt: 'text-amber-400' },
+      };
+      ['efectivo', 'debito', 'fiado'].forEach(m => {
+        const lbl = document.getElementById('lbl-' + m);
+        if (m === val) {
+          lbl.className = 'pay-label cursor-pointer rounded-xl border ' + cfg[m].border + ' ' + cfg[m].bg + ' p-3 text-center transition-all';
+          lbl.querySelector('span:last-child').className = 'text-xs font-semibold ' + cfg[m].txt;
+        } else {
+          lbl.className = 'pay-label cursor-pointer rounded-xl border border-white/10 p-3 text-center transition-all hover:border-slate-500';
+          lbl.querySelector('span:last-child').className = 'text-xs font-semibold text-slate-400';
+        }
+      });
+    }
+
+    /* ─── Preview ─── */
+    function actualizarPreview() {
+      const sel = document.getElementById('venta-producto');
+      const cant = parseInt(document.getElementById('venta-cantidad').value) || 0;
+      const opt = sel.options[sel.selectedIndex];
+      const prev = document.getElementById('venta-preview');
+      if (!opt || !opt.value || cant < 1) { prev.classList.add('hidden'); return; }
+
+      const precio = parseFloat(opt.dataset.precio) || PRECIO_UNIT;
+      const costo = parseFloat(opt.dataset.costo) || COSTO_UNIT;
+      const total = precio * cant;
+      const ganancia = (precio - costo) * cant;
+
+      document.getElementById('prev-precio').textContent = fmtMoney(precio);
+      document.getElementById('prev-total').textContent = fmtMoney(total);
+      document.getElementById('prev-ganancia').textContent = fmtMoney(ganancia);
+      prev.classList.remove('hidden');
+    }
+
+    /* ─── Registrar venta ─── */
+    async function registrarVenta(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-registrar');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Registrando…';
+
+      try {
+        const sel = document.getElementById('venta-producto');
+        const opt = sel.options[sel.selectedIndex];
+        const prodId = parseInt(sel.value);
+        const cant = parseInt(document.getElementById('venta-cantidad').value);
+        const metodo = (document.querySelector('input[name="metodo_pago"]:checked') || {}).value;
+        const cliente = document.getElementById('venta-cliente').value.trim();
+        const precio = parseFloat(opt.dataset.precio) || PRECIO_UNIT;
+        const costo = parseFloat(opt.dataset.costo) || COSTO_UNIT;
+        const stockActual = parseInt(opt.dataset.stock) || 0;
+
+        if (!prodId) throw new Error('Seleccioná un producto');
+        if (cant < 1) throw new Error('La cantidad debe ser mayor a 0');
+        if (metodo === 'fiado' && !cliente) throw new Error('Ingresá el nombre del cliente');
+        if (stockActual < cant) {
+          toast('⚠️ Stock insuficiente. Solo hay ' + stockActual + ' unidades.', 'error');
+          return;
+        }
+
+        const total = precio * cant;
+        const ganancia = (precio - costo) * cant;
+        const pagado = metodo !== 'fiado';
+
+        const { error: errV } = await db.from('ventas').insert([{
+          producto_id: prodId,
+          cantidad: cant,
+          total: total,
+          ganancia: ganancia,
+          metodo_pago: metodo,
+          cliente_fiado: metodo === 'fiado' ? cliente : null,
+          pagado: pagado,
+        }]);
+        if (errV) throw errV;
+
+        // Update stock
+        await db.from('productos')
+          .update({ stock: stockActual - cant })
+          .eq('id', prodId);
+
+        toast('✅ Venta registrada! ' + fmtMoney(total) + ' · ' + metodo, 'success');
+
+        // Reset
+        document.getElementById('venta-form').reset();
+        document.getElementById('venta-preview').classList.add('hidden');
+        document.getElementById('fiado-campo').classList.add('hidden');
+        onMetodoPagoChange();
+
+        await Promise.all([loadProductos(), loadDashboard()]);
+        renderVentasHoySeccion();
+
+      } catch (err) {
+        toast('❌ ' + (err.message || err), 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Registrar Venta';
+      }
+    }
+
+    /* ─── Load fiados ─── */
+    async function loadFiados() {
+      const { data: pend, error: e1 } = await db.from('ventas')
+        .select('*, productos(nombre)')
+        .eq('metodo_pago', 'fiado')
+        .eq('pagado', false)
+        .order('created_at', { ascending: false });
+      if (e1) { toast('Error: ' + e1.message, 'error'); return; }
+      fiadosPendientes = pend || [];
+
+      const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
+      const { data: paid } = await db.from('ventas')
+        .select('*, productos(nombre)')
+        .eq('metodo_pago', 'fiado').eq('pagado', true)
+        .gte('created_at', hace30.toISOString())
+        .order('created_at', { ascending: false }).limit(30);
+      fiadosPagados = paid || [];
+
+      const total = fiadosPendientes.reduce((s, v) => s + (v.total || 0), 0);
+      const ganancia = fiadosPendientes.reduce((s, v) => s + (v.ganancia || 0), 0);
+      document.getElementById('f-count-pendiente').textContent = fiadosPendientes.length;
+      document.getElementById('f-total-adeudado').textContent = fmtMoney(total);
+      document.getElementById('f-ganancia-riesgo').textContent = fmtMoney(ganancia);
+
+      const badge = document.getElementById('fiados-badge');
+      if (fiadosPendientes.length > 0) { badge.textContent = fiadosPendientes.length; badge.classList.remove('hidden'); }
+      else badge.classList.add('hidden');
+
+      renderFiados();
+      renderFiadosPagados();
+    }
+
+    function renderFiados() {
+      const q = (document.getElementById('fiado-search').value || '').toLowerCase();
+      const list = document.getElementById('fiados-list');
+      const data = fiadosPendientes.filter(v => !q || (v.cliente_fiado || '').toLowerCase().includes(q));
+
+      if (!data.length) {
+        list.innerHTML = `<div class="text-center py-8">
+          <p class="text-3xl mb-2">🎉</p>
+          <p class="text-slate-400 text-sm">${q ? 'Sin resultados para "' + q + '"' : 'No hay fiados pendientes'}</p>
+        </div>`;
+        return;
+      }
+
+      list.innerHTML = data.map(v => `
+        <div class="fiado-row flex items-center justify-between bg-surface-800 rounded-xl px-4 py-3 gap-3 border border-amber-500/10">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="w-7 h-7 bg-amber-500/20 rounded-full flex items-center justify-center text-sm shrink-0">👤</span>
+              <p class="text-sm font-semibold text-white truncate">${v.cliente_fiado || 'Sin nombre'}</p>
+            </div>
+            <p class="text-xs text-slate-400 ml-9">${v.productos?.nombre ?? 'Producto'} ×${v.cantidad} · ${fmtDate(v.created_at)}</p>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-base font-bold text-amber-400 mb-1">${fmtMoney(v.total)}</p>
+            <button onclick="marcarPagado(${v.id}, this)" class="btn-success">✓ Cobrado</button>
+          </div>
+        </div>`).join('');
+    }
+
+    function renderFiadosPagados() {
+      const list = document.getElementById('fiados-pagados-list');
+      if (!fiadosPagados.length) {
+        list.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Sin fiados cobrados recientes</p>';
+        return;
+      }
+      list.innerHTML = fiadosPagados.map(v => `
+        <div class="flex items-center justify-between py-2.5 px-3 rounded-lg bg-surface-800/60 gap-3">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm text-white truncate">${v.cliente_fiado || 'Sin nombre'} — ${v.productos?.nombre ?? 'Producto'} ×${v.cantidad}</p>
+            <p class="text-xs text-slate-500">${fmtDate(v.created_at)}</p>
+          </div>
+          <span class="text-sm font-semibold text-green-400 shrink-0">${fmtMoney(v.total)}</span>
+        </div>`).join('');
+    }
+
+    /* ─── Marcar como pagado ─── */
+    async function marcarPagado(id, btnEl) {
+      btnEl.disabled = true;
+      btnEl.innerHTML = '<span class="spinner"></span>';
+      const { error } = await db.from('ventas').update({ pagado: true }).eq('id', id);
+      if (error) {
+        toast('Error: ' + error.message, 'error');
+        btnEl.disabled = false;
+        btnEl.innerHTML = '✓ Cobrado';
+        return;
+      }
+      toast('✅ Fiado marcado como cobrado', 'success');
+      await loadFiados();
+      await loadFiadosStats();
+    }
+
+    /* ─── Stock Section ─── */
+    async function loadStockSection() {
+      const { data, error } = await db.from('productos').select('*').order('nombre');
+      if (error) { toast('Error cargando productos: ' + error.message, 'error'); return; }
+      productos = data || [];
+
+      // Summary stats
+      const totalUnidades = productos.reduce((s, p) => s + (p.stock || 0), 0);
+      const valorStock = productos.reduce((s, p) => s + ((p.stock || 0) * (p.costo || 0)), 0);
+      document.getElementById('st-total-productos').textContent = productos.length;
+      document.getElementById('st-total-unidades').textContent = totalUnidades;
+      document.getElementById('st-valor-stock').textContent = fmtMoney(valorStock);
+
+      const list = document.getElementById('stock-section-list');
+      if (!productos.length) {
+        list.innerHTML = `<div class="text-center py-10">
+          <p class="text-4xl mb-3">📦</p>
+          <p class="text-slate-400 text-sm">No hay productos. Agregá uno con el botón <strong class="text-white">Nuevo Producto</strong>.</p>
+        </div>`;
+        return;
+      }
+
+      list.innerHTML = productos.map(p => {
+        const stock = p.stock ?? 0;
+        const pct = Math.min(100, (stock / 20) * 100);
+        const cls = stock === 0 ? 'stock-empty' : stock <= STOCK_BAJO ? 'stock-low' : 'stock-ok';
+        const alertBadge = stock === 0
+          ? '<span class="text-xs px-2 py-0.5 rounded-full font-medium bg-red-500/20 text-red-400">🔴 Sin stock</span>'
+          : stock <= STOCK_BAJO
+            ? '<span class="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-400">⚠️ Stock bajo</span>'
+            : '<span class="text-xs px-2 py-0.5 rounded-full font-medium bg-green-500/20 text-green-400">✅ OK</span>';
+        const ganancia = (p.precio_venta || 0) - (p.costo || 0);
+        const margen = p.precio_venta ? Math.round((ganancia / p.precio_venta) * 100) : 0;
+        return `
+          <div class="stock-row bg-surface-800 rounded-xl p-4 border border-white/5">
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-bold text-white">${p.nombre}</span>
+                  ${alertBadge}
+                </div>
+                <div class="flex gap-4 mt-1 text-xs text-slate-400">
+                  <span>Costo: <strong class="text-slate-300">${fmtMoney(p.costo ?? 0)}</strong></span>
+                  <span>Precio: <strong class="text-brand-400">${fmtMoney(p.precio_venta ?? 0)}</strong></span>
+                  <span>Margen: <strong class="text-green-400">${margen}%</strong></span>
+                </div>
+              </div>
+              <div class="flex gap-1.5 shrink-0">
+                <button onclick="openModalReponer(${p.id})"
+                  class="btn-success text-xs px-2.5 py-1.5">+ Reponer</button>
+                <button onclick="openModalEditarProducto(${p.id})"
+                  class="btn-warning text-xs px-2.5 py-1.5">✏️ Editar</button>
+                <button onclick="eliminarProducto(${p.id}, '${p.nombre.replace(/'/g, "\\'")}')"
+                  class="btn-danger text-xs px-2.5 py-1.5">🗑</button>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="flex-1 bg-surface-600 rounded-full h-2 overflow-hidden">
+                <div class="progress-bar ${cls}" style="width:${pct}%;height:100%"></div>
+              </div>
+              <span class="text-sm font-bold ${stock === 0 ? 'text-red-400' : stock <= STOCK_BAJO ? 'text-amber-400' : 'text-white'} shrink-0 min-w-[60px] text-right">${stock} und.</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    /* ─── Modal Nuevo / Editar Producto ─── */
+    function openModalNuevoProducto() {
+      document.getElementById('modal-titulo').textContent = '➕ Nuevo Producto';
+      document.getElementById('modal-submit-btn').textContent = 'Guardar Producto';
+      document.getElementById('modal-prod-id').value = '';
+      document.getElementById('modal-nombre').value = '';
+      document.getElementById('modal-costo').value = COSTO_UNIT;
+      document.getElementById('modal-precio').value = PRECIO_UNIT;
+      document.getElementById('modal-stock').value = '0';
+      calcModalGanancia();
+      document.getElementById('modal-producto').classList.remove('hidden');
+    }
+
+    function openModalEditarProducto(id) {
+      const p = productos.find(x => x.id === id);
+      if (!p) return;
+      document.getElementById('modal-titulo').textContent = '✏️ Editar Producto';
+      document.getElementById('modal-submit-btn').textContent = 'Guardar Cambios';
+      document.getElementById('modal-prod-id').value = p.id;
+      document.getElementById('modal-nombre').value = p.nombre;
+      document.getElementById('modal-costo').value = p.costo ?? COSTO_UNIT;
+      document.getElementById('modal-precio').value = p.precio_venta ?? PRECIO_UNIT;
+      document.getElementById('modal-stock').value = p.stock ?? 0;
+      calcModalGanancia();
+      document.getElementById('modal-producto').classList.remove('hidden');
+    }
+
+    function closeModalProducto(e) {
+      if (e && e.target !== document.getElementById('modal-producto')) return;
+      document.getElementById('modal-producto').classList.add('hidden');
+    }
+
+    function calcModalGanancia() {
+      const costo = parseFloat(document.getElementById('modal-costo').value) || 0;
+      const precio = parseFloat(document.getElementById('modal-precio').value) || 0;
+      const prev = document.getElementById('modal-ganancia-preview');
+      if (!costo || !precio) { prev.classList.add('hidden'); return; }
+      const gan = precio - costo;
+      const margen = precio > 0 ? Math.round((gan / precio) * 100) : 0;
+      document.getElementById('modal-ganancia-val').textContent = fmtMoney(gan);
+      document.getElementById('modal-margen-val').textContent = margen + '%';
+      prev.classList.remove('hidden');
+    }
+
+    async function guardarProducto(e) {
+      e.preventDefault();
+      const btn = document.getElementById('modal-submit-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>';
+      try {
+        const id = document.getElementById('modal-prod-id').value;
+        const nombre = document.getElementById('modal-nombre').value.trim();
+        const costo = parseFloat(document.getElementById('modal-costo').value);
+        const precio = parseFloat(document.getElementById('modal-precio').value);
+        const stock = parseInt(document.getElementById('modal-stock').value);
+
+        if (!nombre) throw new Error('El nombre es requerido');
+        if (isNaN(costo)) throw new Error('El costo es requerido');
+        if (isNaN(precio)) throw new Error('El precio es requerido');
+        if (isNaN(stock)) throw new Error('El stock es requerido');
+        if (precio <= costo) toast('⚠️ El precio de venta es menor o igual al costo', 'info');
+
+        const payload = { nombre, costo, precio_venta: precio, stock };
+
+        let error;
+        if (id) {
+          ({ error } = await db.from('productos').update(payload).eq('id', parseInt(id)));
+        } else {
+          ({ error } = await db.from('productos').insert([payload]));
+        }
+        if (error) throw error;
+
+        toast(id ? '✅ Producto actualizado' : '✅ Producto creado', 'success');
+        document.getElementById('modal-producto').classList.add('hidden');
+        await Promise.all([loadProductos(), loadStockSection()]);
+      } catch (err) {
+        toast('❌ ' + (err.message || err), 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = document.getElementById('modal-prod-id').value ? 'Guardar Cambios' : 'Guardar Producto';
+      }
+    }
+
+    /* ─── Modal Reponer Stock ─── */
+    function openModalReponer(id) {
+      const p = productos.find(x => x.id === id);
+      if (!p) return;
+      document.getElementById('reponer-prod-id').value = p.id;
+      document.getElementById('reponer-stock-base').value = p.stock ?? 0;
+      document.getElementById('reponer-nombre').textContent = p.nombre;
+      document.getElementById('reponer-stock-actual').textContent = (p.stock ?? 0);
+      document.getElementById('reponer-cantidad').value = '';
+      document.getElementById('reponer-preview').classList.add('hidden');
+      // store costo for preview calc
+      document.getElementById('reponer-prod-id').dataset.costo = p.costo ?? COSTO_UNIT;
+      document.getElementById('modal-reponer').classList.remove('hidden');
+    }
+
+    function closeModalReponer(e) {
+      if (e && e.target !== document.getElementById('modal-reponer')) return;
+      document.getElementById('modal-reponer').classList.add('hidden');
+    }
+
+    function calcReponerPreview() {
+      const cant = parseInt(document.getElementById('reponer-cantidad').value) || 0;
+      const base = parseInt(document.getElementById('reponer-stock-base').value) || 0;
+      const costo = parseFloat(document.getElementById('reponer-prod-id').dataset.costo) || COSTO_UNIT;
+      const prev = document.getElementById('reponer-preview');
+      if (!cant) { prev.classList.add('hidden'); return; }
+      document.getElementById('reponer-nuevo-stock').textContent = (base + cant) + ' unidades';
+      document.getElementById('reponer-costo-total').textContent = fmtMoney(cant * costo);
+      prev.classList.remove('hidden');
+    }
+
+    async function confirmarReposicion(e) {
+      e.preventDefault();
+      const btn = e.submitter;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Guardando…';
+      try {
+        const id = parseInt(document.getElementById('reponer-prod-id').value);
+        const base = parseInt(document.getElementById('reponer-stock-base').value) || 0;
+        const cant = parseInt(document.getElementById('reponer-cantidad').value);
+        if (!cant || cant < 1) throw new Error('Ingresá una cantidad mayor a 0');
+        const nuevoStock = base + cant;
+        const { error } = await db.from('productos').update({ stock: nuevoStock }).eq('id', id);
+        if (error) throw error;
+        toast(`✅ Stock actualizado: +${cant} unidades (total: ${nuevoStock})`, 'success');
+        document.getElementById('modal-reponer').classList.add('hidden');
+        await Promise.all([loadProductos(), loadStockSection()]);
+      } catch (err) {
+        toast('❌ ' + (err.message || err), 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '✅ Confirmar Reposición';
+      }
+    }
+
+    /* ─── Eliminar producto ─── */
+    async function eliminarProducto(id, nombre) {
+      if (!confirm(`¿Eliminar el producto "${nombre}"? Esta acción no se puede deshacer.`)) return;
+      const { error } = await db.from('productos').delete().eq('id', id);
+      if (error) { toast('❌ Error: ' + error.message, 'error'); return; }
+      toast('🗑 Producto "' + nombre + '" eliminado', 'info');
+      await Promise.all([loadProductos(), loadStockSection()]);
+    }
+
+    /* ─── Init ─── */
+    async function init() {
+      await checkConnection();
+      await loadProductos();
+      await loadDashboard();
+    }
+
+    init();
+
+    /* ─── PWA: Service Worker ─── */
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('[SW] Registrado:', reg.scope))
+          .catch(err => console.warn('[SW] Error:', err));
+      });
+    }
+
+    /* ─── PWA: Banner de instalación ─── */
+    let deferredPrompt = null;
+    const installBanner = document.getElementById('install-banner');
+    const installBtn = document.getElementById('install-btn');
+    const installDismiss = document.getElementById('install-dismiss');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      // Mostrar banner solo si no fue descartado antes
+      if (!localStorage.getItem('pwa-dismissed')) {
+        installBanner.classList.remove('hidden');
+        installBanner.classList.add('flex');
+      }
+    });
+
+    installBtn && installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        toast('✅ App instalada correctamente', 'success');
+      }
+      deferredPrompt = null;
+      installBanner.classList.add('hidden');
+      installBanner.classList.remove('flex');
+    });
+
+    installDismiss && installDismiss.addEventListener('click', () => {
+      installBanner.classList.add('hidden');
+      installBanner.classList.remove('flex');
+      localStorage.setItem('pwa-dismissed', '1');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installBanner.classList.add('hidden');
+      installBanner.classList.remove('flex');
+      deferredPrompt = null;
+      toast('🎉 ¡App instalada! Ya podés abrirla desde tu pantalla de inicio', 'success');
+    });
+  </script>
+</body>
+
+</html>

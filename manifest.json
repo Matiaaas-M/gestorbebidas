@@ -1,0 +1,43 @@
+{
+  "name": "GestorBebidas — Panel de Ventas",
+  "short_name": "GestorBebidas",
+  "description": "Sistema de gestión de ventas, fiados y stock para negocio de bebidas.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f1117",
+  "theme_color": "#0ea5e9",
+  "lang": "es",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nueva Venta",
+      "short_name": "Venta",
+      "description": "Registrar una nueva venta rápidamente",
+      "url": "./index.html#ventas",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ver Fiados",
+      "short_name": "Fiados",
+      "description": "Ver fiados pendientes",
+      "url": "./index.html#fiados",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
