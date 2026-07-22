@@ -3,8 +3,8 @@
    Estrategia: Cache-First para assets, Network-First para API
    ===================================================== */
 
-const CACHE_NAME    = 'gestorbebidas-v1';
-const RUNTIME_CACHE = 'gestorbebidas-runtime-v1';
+const CACHE_NAME    = 'gestorbebidas-v2';
+const RUNTIME_CACHE = 'gestorbebidas-runtime-v2';
 
 // Assets que se cachean al instalar el SW
 const PRECACHE_ASSETS = [
@@ -21,7 +21,6 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-        // Algunos CDN pueden fallar; ignoramos errores individuales
         console.warn('[SW] Pre-cache parcial:', err);
       });
     }).then(() => self.skipWaiting())
@@ -58,6 +57,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // HTML / Navegación principal → Network-First para recibir siempre la última versión
+  if (request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/') {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
   // Fonts e íconos de Google → Cache-First con runtime cache
   if (url.hostname.includes('fonts.googleapis.com') ||
       url.hostname.includes('fonts.gstatic.com')) {
@@ -72,7 +77,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Archivos locales (HTML, imágenes, etc.) → Cache-First
+  // Archivos locales estáticos (imágenes, manifest, etc.) → Cache-First
   if (url.origin === self.location.origin || request.url.startsWith('file://')) {
     event.respondWith(cacheFirst(request, CACHE_NAME));
     return;
