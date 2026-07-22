@@ -499,6 +499,71 @@
         transform: translateY(0);
       }
     }
+
+    /* ── PIN Lock Screen ── */
+    #pin-overlay {
+      position: fixed; inset: 0; z-index: 2000;
+      background: #0f1117;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2rem;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    #pin-overlay.unlocking {
+      opacity: 0; transform: scale(1.04);
+      pointer-events: none;
+    }
+    .pin-dot {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(14,165,233,0.5);
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+    .pin-dot.filled {
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      border-color: #0ea5e9;
+      transform: scale(1.15);
+      box-shadow: 0 0 10px rgba(14,165,233,0.5);
+    }
+    .pin-dot.error {
+      background: #ef4444;
+      border-color: #ef4444;
+      animation: shake 0.4s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-8px); }
+      40%      { transform: translateX(8px); }
+      60%      { transform: translateX(-6px); }
+      80%      { transform: translateX(6px); }
+    }
+    .pin-key {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: rgba(30,37,53,0.9);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #e2e8f0; font-size: 1.4rem; font-weight: 600;
+      cursor: pointer;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      transition: all 0.15s ease;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .pin-key:active, .pin-key.pressed {
+      background: rgba(14,165,233,0.25);
+      border-color: #0ea5e9;
+      transform: scale(0.93);
+    }
+    .pin-key .key-sub {
+      font-size: 0.45rem; letter-spacing: 0.12em;
+      color: #64748b; text-transform: uppercase; margin-top: 1px;
+    }
+    .pin-key.key-delete { font-size: 1.2rem; }
+    .pin-key.key-ok {
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      border-color: transparent;
+      box-shadow: 0 4px 20px rgba(14,165,233,0.4);
+    }
+    .pin-key.key-ok:active { opacity: 0.8; }
   </style>
 </head>
 
@@ -506,6 +571,76 @@
 
   <!-- Toast container -->
   <div id="toast-container" aria-live="polite"></div>
+
+  <!-- ═══ PIN LOCK SCREEN ═══ -->
+  <div id="pin-overlay">
+    <div style="text-align:center; margin-bottom:2.5rem;">
+      <div class="hero-gradient" style="width:72px;height:72px;border-radius:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 1.2rem;box-shadow:0 0 32px rgba(14,165,233,0.4);">
+        <svg style="width:36px;height:36px;color:#fff" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      </div>
+      <h2 style="font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:0.3rem;">GestorBebidas</h2>
+      <p id="pin-label" style="font-size:0.85rem;color:#64748b;">Ingresá tu PIN para continuar</p>
+    </div>
+
+    <!-- Dots -->
+    <div id="pin-dots" style="display:flex;gap:18px;margin-bottom:2.5rem;">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+
+    <!-- Keypad -->
+    <div style="display:grid;grid-template-columns:repeat(3,72px);gap:14px;">
+      <button class="pin-key" onclick="pinDigit('1')">1<span class="key-sub">&nbsp;</span></button>
+      <button class="pin-key" onclick="pinDigit('2')">2<span class="key-sub">ABC</span></button>
+      <button class="pin-key" onclick="pinDigit('3')">3<span class="key-sub">DEF</span></button>
+      <button class="pin-key" onclick="pinDigit('4')">4<span class="key-sub">GHI</span></button>
+      <button class="pin-key" onclick="pinDigit('5')">5<span class="key-sub">JKL</span></button>
+      <button class="pin-key" onclick="pinDigit('6')">6<span class="key-sub">MNO</span></button>
+      <button class="pin-key" onclick="pinDigit('7')">7<span class="key-sub">PQRS</span></button>
+      <button class="pin-key" onclick="pinDigit('8')">8<span class="key-sub">TUV</span></button>
+      <button class="pin-key" onclick="pinDigit('9')">9<span class="key-sub">WXYZ</span></button>
+      <button class="pin-key key-delete" onclick="pinDelete()">⌫</button>
+      <button class="pin-key" onclick="pinDigit('0')">0</button>
+      <button class="pin-key key-ok" onclick="pinConfirm()">✓</button>
+    </div>
+
+    <p style="margin-top:2rem;font-size:0.75rem;color:#334155;">PIN por defecto: 1234 · Cambialo dentro de la app</p>
+  </div>
+
+  <!-- MODAL: Cambiar PIN -->
+  <div id="modal-change-pin" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-base font-bold text-white">🔐 Cambiar PIN</h3>
+        <button onclick="document.getElementById('modal-change-pin').classList.add('hidden')"
+          class="text-slate-400 hover:text-white transition-colors text-xl leading-none">&times;</button>
+      </div>
+      <form onsubmit="guardarNuevoPin(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1.5">PIN actual <span class="text-red-400">*</span></label>
+          <input id="cp-actual" type="password" inputmode="numeric" maxlength="4" placeholder="••••" class="form-input" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1.5">Nuevo PIN (4 dígitos) <span class="text-red-400">*</span></label>
+          <input id="cp-nuevo" type="password" inputmode="numeric" maxlength="4" placeholder="••••" class="form-input" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-1.5">Confirmar nuevo PIN <span class="text-red-400">*</span></label>
+          <input id="cp-confirmar" type="password" inputmode="numeric" maxlength="4" placeholder="••••" class="form-input" required />
+        </div>
+        <div class="flex gap-3 pt-1">
+          <button type="button" onclick="document.getElementById('modal-change-pin').classList.add('hidden')"
+            class="flex-1 py-2.5 rounded-lg border border-white/10 text-slate-400 text-sm font-medium hover:border-white/20 hover:text-white transition-all">Cancelar</button>
+          <button type="submit" class="btn-primary flex-1 py-2.5 text-sm">Guardar PIN</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- PWA Install Banner -->
   <div id="install-banner"
@@ -554,6 +689,24 @@
       <div class="flex items-center gap-2 ml-3">
         <div id="conn-dot" class="pulse-dot bg-amber-400"></div>
         <span id="conn-label" class="text-xs text-slate-400 hidden sm:inline">Conectando…</span>
+        <!-- Lock button -->
+        <button onclick="lockApp()" title="Bloquear app"
+          class="ml-1 w-7 h-7 rounded-lg bg-surface-700 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-white/30 transition-all"
+          style="background:rgba(30,37,53,0.8)">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </button>
+        <!-- Change PIN button -->
+        <button onclick="document.getElementById('modal-change-pin').classList.remove('hidden')" title="Cambiar PIN"
+          class="w-7 h-7 rounded-lg bg-surface-700 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-white/30 transition-all"
+          style="background:rgba(30,37,53,0.8)">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+        </button>
       </div>
     </div>
   </header>
@@ -1728,6 +1881,121 @@
 
     init();
 
+    /* ─── PIN LOCK ─── */
+    const PIN_KEY      = 'gb_pin';
+    const SESSION_KEY  = 'gb_session';
+    const SESSION_HRS  = 8;       // horas antes de pedir PIN de nuevo
+    const DEFAULT_PIN  = '1234';
+
+    let pinBuffer = '';
+    let pinMode   = 'unlock';     // 'unlock' | 'set'
+
+    function hashPin(p) {
+      // Simple hash con btoa para no guardar en texto plano
+      return btoa('gb::' + p + '::salt9');
+    }
+
+    function getSavedPin() {
+      return localStorage.getItem(PIN_KEY) || hashPin(DEFAULT_PIN);
+    }
+
+    function isSessionValid() {
+      const ts = parseInt(localStorage.getItem(SESSION_KEY) || '0');
+      return Date.now() - ts < SESSION_HRS * 3600 * 1000;
+    }
+
+    function startApp() {
+      const overlay = document.getElementById('pin-overlay');
+      overlay.classList.add('unlocking');
+      setTimeout(() => { overlay.style.display = 'none'; }, 420);
+      localStorage.setItem(SESSION_KEY, Date.now().toString());
+      init();
+    }
+
+    function lockApp() {
+      localStorage.removeItem(SESSION_KEY);
+      pinBuffer = '';
+      updatePinDots();
+      document.getElementById('pin-label').textContent = 'Ingresá tu PIN para continuar';
+      document.getElementById('pin-label').style.color = '#64748b';
+      const overlay = document.getElementById('pin-overlay');
+      overlay.style.display = 'flex';
+      overlay.style.opacity = '1';
+      overlay.style.transform = 'none';
+      overlay.classList.remove('unlocking');
+    }
+
+    function pinDigit(d) {
+      if (pinBuffer.length >= 4) return;
+      pinBuffer += d;
+      updatePinDots();
+      // Feedback táctil
+      if (navigator.vibrate) navigator.vibrate(10);
+      if (pinBuffer.length === 4) setTimeout(pinConfirm, 120);
+    }
+
+    function pinDelete() {
+      pinBuffer = pinBuffer.slice(0, -1);
+      updatePinDots();
+    }
+
+    function pinConfirm() {
+      if (pinBuffer.length === 0) return;
+      if (hashPin(pinBuffer) === getSavedPin()) {
+        startApp();
+      } else {
+        // Error shake
+        const dots = document.querySelectorAll('.pin-dot');
+        dots.forEach(d => { d.classList.remove('filled'); d.classList.add('error'); });
+        document.getElementById('pin-label').textContent = 'PIN incorrecto, intentá de nuevo';
+        document.getElementById('pin-label').style.color = '#ef4444';
+        if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+        setTimeout(() => {
+          dots.forEach(d => d.classList.remove('error'));
+          document.getElementById('pin-label').textContent = 'Ingresá tu PIN para continuar';
+          document.getElementById('pin-label').style.color = '#64748b';
+          pinBuffer = '';
+          updatePinDots();
+        }, 900);
+      }
+    }
+
+    function updatePinDots() {
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById('dot-' + i);
+        dot.classList.toggle('filled', i < pinBuffer.length);
+      }
+    }
+
+    function guardarNuevoPin(e) {
+      e.preventDefault();
+      const actual    = document.getElementById('cp-actual').value;
+      const nuevo     = document.getElementById('cp-nuevo').value;
+      const confirmar = document.getElementById('cp-confirmar').value;
+      if (hashPin(actual) !== getSavedPin()) {
+        toast('❌ El PIN actual es incorrecto', 'error'); return;
+      }
+      if (!/^\d{4}$/.test(nuevo)) {
+        toast('❌ El PIN debe tener exactamente 4 dígitos', 'error'); return;
+      }
+      if (nuevo !== confirmar) {
+        toast('❌ Los PINes nuevos no coinciden', 'error'); return;
+      }
+      localStorage.setItem(PIN_KEY, hashPin(nuevo));
+      document.getElementById('modal-change-pin').classList.add('hidden');
+      document.getElementById('cp-actual').value    = '';
+      document.getElementById('cp-nuevo').value     = '';
+      document.getElementById('cp-confirmar').value = '';
+      toast('✅ PIN cambiado correctamente', 'success');
+    }
+
+    // ── Arrancar: verificar sesión ──
+    if (isSessionValid()) {
+      document.getElementById('pin-overlay').style.display = 'none';
+      init();
+    }
+    // Si no, el overlay ya está visible y el usuario debe ingresar el PIN
+
     /* ─── PWA: Service Worker ─── */
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -1746,7 +2014,6 @@
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      // Mostrar banner solo si no fue descartado antes
       if (!localStorage.getItem('pwa-dismissed')) {
         installBanner.classList.remove('hidden');
         installBanner.classList.add('flex');
@@ -1757,9 +2024,7 @@
       if (!deferredPrompt) return;
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        toast('✅ App instalada correctamente', 'success');
-      }
+      if (outcome === 'accepted') toast('✅ App instalada correctamente', 'success');
       deferredPrompt = null;
       installBanner.classList.add('hidden');
       installBanner.classList.remove('flex');
